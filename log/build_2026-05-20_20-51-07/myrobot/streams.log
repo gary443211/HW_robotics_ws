@@ -1,0 +1,20 @@
+[0.879s] Invoking command in '/home/gary/HW_robotics_ws/build/myrobot': PYTHONPATH=/home/gary/HW_robotics_ws/build/myrobot/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/gary/HW_robotics_ws/install/myrobot/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/gary/HW_robotics_ws/build/myrobot/build --no-deps symlink_data
+[1.067s] running develop
+[1.185s] running egg_info
+[1.185s] writing myrobot.egg-info/PKG-INFO
+[1.185s] writing dependency_links to myrobot.egg-info/dependency_links.txt
+[1.186s] writing entry points to myrobot.egg-info/entry_points.txt
+[1.186s] writing requirements to myrobot.egg-info/requires.txt
+[1.186s] writing top-level names to myrobot.egg-info/top_level.txt
+[1.187s] reading manifest file 'myrobot.egg-info/SOURCES.txt'
+[1.188s] writing manifest file 'myrobot.egg-info/SOURCES.txt'
+[1.188s] running build_ext
+[1.189s] Creating /home/gary/HW_robotics_ws/install/myrobot/lib/python3.10/site-packages/myrobot.egg-link (link to .)
+[1.189s] Installing IK_path_planning script to /home/gary/HW_robotics_ws/install/myrobot/lib/myrobot
+[1.190s] Installing kb_control script to /home/gary/HW_robotics_ws/install/myrobot/lib/myrobot
+[1.190s] Installing moveit_real_arm_interface script to /home/gary/HW_robotics_ws/install/myrobot/lib/myrobot
+[1.190s] Installing serial_with_ST script to /home/gary/HW_robotics_ws/install/myrobot/lib/myrobot
+[1.190s] 
+[1.190s] Installed /home/gary/HW_robotics_ws/build/myrobot
+[1.190s] running symlink_data
+[1.216s] Invoked command in '/home/gary/HW_robotics_ws/build/myrobot' returned '0': PYTHONPATH=/home/gary/HW_robotics_ws/build/myrobot/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/gary/HW_robotics_ws/install/myrobot/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/gary/HW_robotics_ws/build/myrobot/build --no-deps symlink_data

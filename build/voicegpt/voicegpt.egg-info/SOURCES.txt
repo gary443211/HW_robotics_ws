@@ -1,0 +1,15 @@
+package.xml
+setup.cfg
+setup.py
+launch/lab2.launch.py
+resource/voicegpt
+voicegpt/__init__.py
+voicegpt/turtlenode.py
+voicegpt/voicegpt.py
+voicegpt.egg-info/PKG-INFO
+voicegpt.egg-info/SOURCES.txt
+voicegpt.egg-info/dependency_links.txt
+voicegpt.egg-info/entry_points.txt
+voicegpt.egg-info/requires.txt
+voicegpt.egg-info/top_level.txt
+voicegpt.egg-info/zip-safe

@@ -1,0 +1,42 @@
+running develop
+running egg_info
+creating myrobot.egg-info
+writing myrobot.egg-info/PKG-INFO
+writing dependency_links to myrobot.egg-info/dependency_links.txt
+writing entry points to myrobot.egg-info/entry_points.txt
+writing requirements to myrobot.egg-info/requires.txt
+writing top-level names to myrobot.egg-info/top_level.txt
+writing manifest file 'myrobot.egg-info/SOURCES.txt'
+reading manifest file 'myrobot.egg-info/SOURCES.txt'
+writing manifest file 'myrobot.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/gary/HW_robotics_ws/install/myrobot/lib/python3.10/site-packages/myrobot.egg-link (link to .)
+Installing kb_control script to /home/gary/HW_robotics_ws/install/myrobot/lib/myrobot
+
+Installed /home/gary/HW_robotics_ws/build/myrobot
+running symlink_data
+creating /home/gary/HW_robotics_ws/install/myrobot/share/ament_index
+creating /home/gary/HW_robotics_ws/install/myrobot/share/ament_index/resource_index
+creating /home/gary/HW_robotics_ws/install/myrobot/share/ament_index/resource_index/packages
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/resource/myrobot -> /home/gary/HW_robotics_ws/install/myrobot/share/ament_index/resource_index/packages
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/package.xml -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot
+creating /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/launch
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/launch/gazebo.launch.py -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/launch
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/launch/display.launch.py -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/launch
+creating /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/urdf/myrobot.gazebo -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/urdf/materials.xacro -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/urdf/myrobot.urdf -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/urdf/arm_for_moveit.xacro -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/urdf/myrobot.xacro -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/urdf
+creating /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link2.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link3.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link1.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link00.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link4.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link0_fake_longer.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/meshes/link0.stl -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/meshes
+creating /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/config
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/config/myrobot.rviz -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/config
+symbolically linking /home/gary/HW_robotics_ws/build/myrobot/config/myrobot_control.yaml -> /home/gary/HW_robotics_ws/install/myrobot/share/myrobot/config

@@ -1,0 +1,16 @@
+running develop
+running egg_info
+writing voicegpt.egg-info/PKG-INFO
+writing dependency_links to voicegpt.egg-info/dependency_links.txt
+writing entry points to voicegpt.egg-info/entry_points.txt
+writing requirements to voicegpt.egg-info/requires.txt
+writing top-level names to voicegpt.egg-info/top_level.txt
+reading manifest file 'voicegpt.egg-info/SOURCES.txt'
+writing manifest file 'voicegpt.egg-info/SOURCES.txt'
+running build_ext
+Creating /home/gary/HW_robotics_ws/install/voicegpt/lib/python3.10/site-packages/voicegpt.egg-link (link to .)
+Installing turtlenode script to /home/gary/HW_robotics_ws/install/voicegpt/lib/voicegpt
+Installing voicegpt_node script to /home/gary/HW_robotics_ws/install/voicegpt/lib/voicegpt
+
+Installed /home/gary/HW_robotics_ws/build/voicegpt
+running symlink_data

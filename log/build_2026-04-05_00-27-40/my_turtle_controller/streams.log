@@ -1,0 +1,17 @@
+[0.817s] Invoking command in '/home/gary/HW_robotics_ws/build/my_turtle_controller': PYTHONPATH=/home/gary/HW_robotics_ws/build/my_turtle_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/gary/HW_robotics_ws/install/my_turtle_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/gary/HW_robotics_ws/build/my_turtle_controller/build --no-deps symlink_data
+[1.005s] running develop
+[1.121s] running egg_info
+[1.122s] writing my_turtle_controller.egg-info/PKG-INFO
+[1.122s] writing dependency_links to my_turtle_controller.egg-info/dependency_links.txt
+[1.122s] writing entry points to my_turtle_controller.egg-info/entry_points.txt
+[1.123s] writing requirements to my_turtle_controller.egg-info/requires.txt
+[1.123s] writing top-level names to my_turtle_controller.egg-info/top_level.txt
+[1.123s] reading manifest file 'my_turtle_controller.egg-info/SOURCES.txt'
+[1.123s] writing manifest file 'my_turtle_controller.egg-info/SOURCES.txt'
+[1.124s] running build_ext
+[1.124s] Creating /home/gary/HW_robotics_ws/install/my_turtle_controller/lib/python3.10/site-packages/my-turtle-controller.egg-link (link to .)
+[1.125s] Installing controller_node script to /home/gary/HW_robotics_ws/install/my_turtle_controller/lib/my_turtle_controller
+[1.125s] 
+[1.125s] Installed /home/gary/HW_robotics_ws/build/my_turtle_controller
+[1.125s] running symlink_data
+[1.174s] Invoked command in '/home/gary/HW_robotics_ws/build/my_turtle_controller' returned '0': PYTHONPATH=/home/gary/HW_robotics_ws/build/my_turtle_controller/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/gary/HW_robotics_ws/install/my_turtle_controller/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/gary/HW_robotics_ws/build/my_turtle_controller/build --no-deps symlink_data

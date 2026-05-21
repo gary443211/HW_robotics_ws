@@ -1,0 +1,1 @@
+/home/gary/HW_robotics_ws/src/voicegpt/launch/lab2.launch.py

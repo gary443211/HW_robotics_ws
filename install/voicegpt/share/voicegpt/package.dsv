@@ -1,0 +1,9 @@
+source;share/voicegpt/hook/pythonpath.ps1
+source;share/voicegpt/hook/pythonpath.dsv
+source;share/voicegpt/hook/pythonpath.sh
+source;share/voicegpt/hook/ament_prefix_path.ps1
+source;share/voicegpt/hook/ament_prefix_path.dsv
+source;share/voicegpt/hook/ament_prefix_path.sh
+source;../../build/voicegpt/share/voicegpt/hook/pythonpath_develop.ps1
+source;../../build/voicegpt/share/voicegpt/hook/pythonpath_develop.dsv
+source;../../build/voicegpt/share/voicegpt/hook/pythonpath_develop.sh
