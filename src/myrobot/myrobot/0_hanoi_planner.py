@@ -25,6 +25,10 @@ from sensor_msgs.msg import JointState
 from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
 from std_msgs.msg import Bool, Header
 
+# load functions from other file
+from myrobot.hanoi_spawn_objects import load_mesh_from_file
+from myrobot.IK_path_planning import Your_IK
+
 Joint_NAMES = ("joint1", "joint2", "joint3", "joint4")
 LINK_LENGTH = (0.0600, 0.0820, 0.1320, 0.1664, 0.0480, 0.0040)
 
@@ -45,6 +49,17 @@ STATION_POSITIONS = (
     (0.25, -0.15),
 )
 
+"""Hanoi tower mesh file path"""
+WORKSPACE_PATH = str(Path(__file__).absolute().parent.parent.parent.parent)
+MESH_DIR = f"{WORKSPACE_PATH}/src/myplan/mesh"
+MESH_FILE_PATH = (
+    f"{MESH_DIR}/tower1.stl",
+    f"{MESH_DIR}/tower2.stl",
+    f"{MESH_DIR}/tower3.stl",
+)
+for mesh in MESH_FILE_PATH:
+    assert Path(mesh).exists(), "Mesh path error"
+
 
 """
 Hint:
@@ -52,31 +67,6 @@ Hint:
     1.xyz in world frame
     2.eef-state: 1 for magnet on, 0 for off
 """
-
-
-def load_mesh_from_file(
-    file_path: str,
-    scale: tuple[float, float, float],
-) -> Mesh:
-    mesh_data = trimesh.load(file_path, force="mesh")
-    assert isinstance(mesh_data, trimesh.base.Trimesh)
-
-    vertices = [
-        Point(
-            x=float(vertex[0]) * scale[0],
-            y=float(vertex[1]) * scale[1],
-            z=float(vertex[2]) * scale[2],
-        )
-        for vertex in mesh_data.vertices
-    ]
-
-    triangles = [
-        MeshTriangle(vertex_indices=[int(face[0]), int(face[1]), int(face[2])])
-        for face in mesh_data.faces
-        if len(face) == 3
-    ]
-    return Mesh(triangles=triangles, vertices=vertices)
-
 
 class MoveGroupPythonInterface(Node):
     def __init__(self, executor: MultiThreadedExecutor):
@@ -133,6 +123,113 @@ class MoveGroupPythonInterface(Node):
             self.get_logger().error("Trajectory action server not available!")
 
         self.get_logger().info("MoveGroup Python Interface already initialized")
+
+    def wait_for_state_update(self) -> None:
+        self._executor.spin_once(timeout_sec=0.5)
+
+    def add_box(
+        self,
+        *,
+        box_name: str,
+        box_pose: Pose,
+        size: tuple[float, float, float],
+    ) -> None:
+        """
+        Description:
+            1. Add a box to rviz, Moveit_planner will think of which as an obstacle.
+            2. An example is shown in the main function below.
+            3. Google scene.add_box for more details
+        """
+
+        box = SolidPrimitive(
+            type=SolidPrimitive.BOX,
+            dimensions=size,
+        )
+
+        collision_object = CollisionObject(
+            header=Header(
+                frame_id=self.PLANNING_FRAME,
+                stamp=self.get_clock().now().to_msg(),
+            ),
+            id=box_name,
+            primitives=[box],
+            primitive_poses=[box_pose],
+            operation=CollisionObject.ADD,
+        )
+
+        self.collision_object_publisher.publish(collision_object)
+
+        self.get_logger().info(f"Added box: {box_name}")
+        self.wait_for_state_update()
+
+    def add_mesh(
+        self,
+        *,
+        mesh_name: str,
+        mesh_position: Point,
+        file_path: str,
+        scale: tuple[float, float, float],
+    ) -> None:
+        """
+        Description:
+            1. Add a mesh to rviz, Moveit_planner will think of which as an obstacle.
+            2. An example is shown in the main function below.
+        """
+        pose = Pose(
+            position=mesh_position,
+            # adjust mesh orientation
+            orientation=Quaternion(x=0.7071081, y=0.0, z=0.0, w=0.7071081),
+        )
+        collision_object = CollisionObject(
+            header=Header(
+                frame_id=self.PLANNING_FRAME,
+                stamp=self.get_clock().now().to_msg(),
+            ),
+            id=mesh_name,
+            meshes=[load_mesh_from_file(file_path, scale)],
+            mesh_poses=[pose],
+            operation=CollisionObject.ADD,
+        )
+
+        self.collision_object_publisher.publish(collision_object)
+
+        self.get_logger().info(f"Added mesh: {mesh_name}")
+        self.wait_for_state_update()
+
+    def attach_object(self, *, object_name: str, link_name: str) -> None:
+        """
+        Description:
+            1. Make sure the object has been added to rviz
+            2. Attach a object to link_frame(usually 'link5'), and the object will move with the link_frame.
+            3. Google scene.attach_box for more details
+        """
+        attached_object = AttachedCollisionObject(
+            link_name=link_name,
+            object=CollisionObject(id=object_name, operation=CollisionObject.ADD),
+            touch_links=[link_name],
+        )
+
+        self.attached_collision_object_publisher.publish(attached_object)
+
+        self.get_logger().info(f"Attached object: {object_name} to {link_name}")
+        self.wait_for_state_update()
+
+    def detach_object(self, *, object_name: str, link_name: str) -> None:
+        """
+        Description:
+            1. Detach a object from link_frame(usually 'link5'), and the object will not move with the link_frame.
+            2. An example is shown in the main function below.
+            3. Google scene.detach_box for more details
+        """
+        attached_object = AttachedCollisionObject(
+            link_name=link_name,
+            object=CollisionObject(id=object_name, operation=CollisionObject.REMOVE),
+        )
+
+        self.attached_collision_object_publisher.publish(attached_object)
+
+        self.get_logger().info(f"Detached object: {object_name} from {link_name}")
+        self.wait_for_state_update()
 
     def joint_state_callback(self, msg: JointState):
         try:
@@ -198,18 +295,6 @@ class MoveGroupPythonInterface(Node):
     def wait_for_state_update(self) -> None:
         self._executor.spin_once(timeout_sec=0.5)
 
-def Your_IK(x: float, y: float, z: float, pitch=pi/2) -> tuple[float, float, float, float]:
-    '''
-    Write your code here!
-    x,y,z,q is in world frame (the same as link0 frame)
-    The end-effector should parallel to the ground.
-    '''
-    # TODO
-
-    # joint_angle = your_IK_solution
-    joint_angle = [0.0, 0.0, 0.0, 0.0]
-    return joint_angle
-
 def main(args=None):
     global EefState
 
@@ -222,6 +307,42 @@ def main(args=None):
         executor.add_node(path_object)
         executor_thread = threading.Thread(target=executor.spin, daemon=True)
         executor_thread.start()
+
+        path_object.add_mesh(
+            mesh_name="tower1",
+            mesh_position=Point(x=0.25, y=0.0, z=0.0),
+            file_path=MESH_FILE_PATH[0],
+            scale=(0.00095, 0.00095, 0.00095),
+        )
+        path_object.add_mesh(
+            mesh_name="tower2",
+            mesh_position=Point(x=0.25, y=0.15, z=0.0),
+            file_path=MESH_FILE_PATH[1],
+            scale=(0.00095, 0.00095, 0.00095),
+        )
+        path_object.add_mesh(
+            mesh_name="tower3",
+            mesh_position=Point(x=0.25, y=-0.15, z=0.0),
+            file_path=MESH_FILE_PATH[2],
+            scale=(0.00095, 0.00095, 0.00095),
+        )
+
+        path_object.add_box(
+            box_name="box_1",
+            box_pose=Pose(
+                orientation=Quaternion(w=1.0),
+                position=Point(x=0.25, y=0.075, z=0.25 / 2),
+            ),
+            size=(0.05, 0.005, 0.25),
+        )
+        path_object.add_box(
+            box_name="box_2",
+            box_pose=Pose(
+                orientation=Quaternion(w=1.0),
+                position=Point(x=0.25, y=-0.075, z=0.25 / 2),
+            ),
+            size=(0.05, 0.005, 0.25),
+        )
 
         while rclpy.ok():
             try:
