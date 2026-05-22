@@ -90,7 +90,7 @@ class MoveGroupPythonInterface(Node):
 
 def Your_IK(x: float, y: float, z: float, pitch=pi/2) -> tuple[float, float, float, float]:
     # 根據 LINK_LENGTH 定義長度
-    l0, l1, l2, l3, l4, l5 = 0.0600, 0.0820, 0.1320, 0.1664, 0.0480, 0.0040
+    l0, l1, l2, l3, l4, l5 = LINK_LENGTH[0],LINK_LENGTH[1],LINK_LENGTH[2],LINK_LENGTH[3],LINK_LENGTH[4],LINK_LENGTH[5]
 
     # 1. 計算 Theta 1 (底座旋轉)
     theta1 = np.arctan2(y, x)
@@ -105,13 +105,17 @@ def Your_IK(x: float, y: float, z: float, pitch=pi/2) -> tuple[float, float, flo
     D_sq = d_target**2 + z_target**2
     D = np.sqrt(D_sq)
 
+    # 確保目標點在工作範圍內
+    if D > l2+l3:
+        raise Exception("Goal point is out of reach!!!")
+   
     # 根據餘弦定理: D^2 = l2^2 + l3^2 - 2*l2*l3*cos(pi - theta3)
     # 簡化後得到 cos(theta3)
     cos_t3 = (D_sq - l2**2 - l3**2) / (2 * l2 * l3)
     
     # 數值保護：確保目標點在工作範圍內
     cos_t3 = np.clip(cos_t3, -1.0, 1.0)
-    theta3 = np.arccos(cos_t3) # 這裡得到的是肘部向上的解，若要向下則取負值
+    theta3 = np.arccos(cos_t3) # 這裡得到的是肘部向上的解(theta3 >= 0)，若要向下則取負值
 
     # 4. 求解 theta2
     # 利用三角形幾何關係：theta2 = 總仰角(phi) - 內部夾角(beta)

@@ -1,1 +1,0 @@
-/home/gary/HW_robotics_ws/src/myplan/launch/static_virtual_joint_tfs.launch.py
