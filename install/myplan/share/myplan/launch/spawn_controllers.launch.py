@@ -1,1 +1,0 @@
-/home/gary/HW_robotics_ws/src/myplan/launch/spawn_controllers.launch.py
