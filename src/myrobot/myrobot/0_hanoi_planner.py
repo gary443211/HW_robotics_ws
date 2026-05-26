@@ -309,6 +309,7 @@ def main(args=None):
         executor_thread = threading.Thread(target=executor.spin, daemon=True)
         executor_thread.start()
 
+        """Hanoi tower initial position randomize"""
         tower_init_pos = random.sample(range(0, 3), 3)
         for i in range(3):
              path_object.add_mesh(
@@ -317,38 +318,14 @@ def main(args=None):
                 file_path=MESH_FILE_PATH[i],
                 scale=(0.00095, 0.00095, 0.00095),
             )
-        # path_object.add_mesh(
-        #     mesh_name="tower1",
-        #     mesh_position=Point(x=0.25, y=0.0, z=0.0),
-        #     file_path=MESH_FILE_PATH[0],
-        #     scale=(0.00095, 0.00095, 0.00095),
-        # )
-        # path_object.add_mesh(
-        #     mesh_name="tower2",
-        #     mesh_position=Point(x=0.25, y=0.15, z=0.0),
-        #     file_path=MESH_FILE_PATH[1],
-        #     scale=(0.00095, 0.00095, 0.00095),
-        # )
-        # path_object.add_mesh(
-        #     mesh_name="tower3",
-        #     mesh_position=Point(x=0.25, y=-0.15, z=0.0),
-        #     file_path=MESH_FILE_PATH[2],
-        #     scale=(0.00095, 0.00095, 0.00095),
-        # )
 
-        path_object.add_box(
-            box_name="box_1",
+        """Add two obstacles"""
+        for i in range(2):
+            path_object.add_box(
+            box_name=f"box_{i+1}",
             box_pose=Pose(
                 orientation=Quaternion(w=1.0),
-                position=Point(x=0.25, y=0.075, z=0.103 / 2),
-            ),
-            size=(0.1, 0.001, 0.103),
-        )
-        path_object.add_box(
-            box_name="box_2",
-            box_pose=Pose(
-                orientation=Quaternion(w=1.0),
-                position=Point(x=0.25, y=-0.075, z=0.103 / 2),
+                position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
             ),
             size=(0.1, 0.001, 0.103),
         )
