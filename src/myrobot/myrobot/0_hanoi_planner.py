@@ -125,9 +125,6 @@ class MoveGroupPythonInterface(Node):
 
         self.get_logger().info("MoveGroup Python Interface already initialized")
 
-    def wait_for_state_update(self) -> None:
-        self._executor.spin_once(timeout_sec=0.5)
-
     def add_box(
         self,
         *,
@@ -294,7 +291,8 @@ class MoveGroupPythonInterface(Node):
         self.get_logger().info(f"Published end effector state: {on}")
 
     def wait_for_state_update(self) -> None:
-        self._executor.spin_once(timeout_sec=0.5)
+        # self._executor.spin_once(timeout_sec=0.5)
+        time.sleep(0.1)
 
 def main(args=None):
     global EefState
@@ -312,14 +310,19 @@ def main(args=None):
         """Hanoi tower initial position randomize"""
         tower_init_pos = random.sample(range(0, 3), 3)
         for i in range(3):
-             path_object.add_mesh(
+            path_object.add_mesh(
                 mesh_name=f"tower_{i+1}",
                 mesh_position=Point(x=STATION_POSITIONS[tower_init_pos[i]][0], y=STATION_POSITIONS[tower_init_pos[i]][1], z=0.0),
                 file_path=MESH_FILE_PATH[i],
                 scale=(0.00095, 0.00095, 0.00095),
             )
+            
+        """knowing the big tower pose just for simulation"""
+        big_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[0]][0], y=STATION_POSITIONS[tower_init_pos[0]][1], z=0.0)
+        mid_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[1]][0], y=STATION_POSITIONS[tower_init_pos[1]][1], z=0.0)
+        small_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[2]][0], y=STATION_POSITIONS[tower_init_pos[2]][1], z=0.0)
 
-        """Add two obstacles"""
+        """Add two obstacles and floor"""
         for i in range(2):
             path_object.add_box(
             box_name=f"box_{i+1}",
@@ -328,7 +331,26 @@ def main(args=None):
                 position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
             ),
             size=(0.1, 0.001, 0.103),
+        )   
+        path_object.add_box(
+            box_name=f"floor",
+            box_pose=Pose(
+                orientation=Quaternion(w=1.0),
+                position=Point(x=0.0, y=0.0, z=-0.005),
+            ),
+            size=(1.0, 1.0, 0.01),
         )
+        time.sleep(1.0)
+
+        # test
+        # path_object.go_to_joint_state(Your_IK(0.22, -0.19, Tower_height))
+        # time.sleep(1.0)
+        path_object.go_to_joint_state(Your_IK(small_tower_pos.x, small_tower_pos.y, Tower_height))
+        time.sleep(1.0)
+        path_object.go_to_joint_state(Your_IK(mid_tower_pos.x, mid_tower_pos.y, Tower_height))
+        time.sleep(1.0)
+        path_object.go_to_joint_state(Your_IK(big_tower_pos.x, big_tower_pos.y, Tower_height))
+        time.sleep(1.0)
 
         while rclpy.ok():
             try:
