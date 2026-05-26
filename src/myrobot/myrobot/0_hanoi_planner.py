@@ -3,6 +3,7 @@ import time
 from math import cos, pi, sin
 from pathlib import Path
 
+import random
 import numpy as np
 import rclpy
 import trimesh
@@ -45,7 +46,7 @@ Tower_overlap = 0.010  # Height of tower overlap
 # You may want to slightly change this
 STATION_POSITIONS = (
     (0.25, 0.15),
-    (0.25, 0),
+    (0.25, 0.0),
     (0.25, -0.15),
 )
 
@@ -308,40 +309,48 @@ def main(args=None):
         executor_thread = threading.Thread(target=executor.spin, daemon=True)
         executor_thread.start()
 
-        path_object.add_mesh(
-            mesh_name="tower1",
-            mesh_position=Point(x=0.25, y=0.0, z=0.0),
-            file_path=MESH_FILE_PATH[0],
-            scale=(0.00095, 0.00095, 0.00095),
-        )
-        path_object.add_mesh(
-            mesh_name="tower2",
-            mesh_position=Point(x=0.25, y=0.15, z=0.0),
-            file_path=MESH_FILE_PATH[1],
-            scale=(0.00095, 0.00095, 0.00095),
-        )
-        path_object.add_mesh(
-            mesh_name="tower3",
-            mesh_position=Point(x=0.25, y=-0.15, z=0.0),
-            file_path=MESH_FILE_PATH[2],
-            scale=(0.00095, 0.00095, 0.00095),
-        )
+        tower_init_pos = random.sample(range(0, 3), 3)
+        for i in range(3):
+             path_object.add_mesh(
+                mesh_name=f"tower_{i+1}",
+                mesh_position=Point(x=STATION_POSITIONS[tower_init_pos[i]][0], y=STATION_POSITIONS[tower_init_pos[i]][1], z=0.0),
+                file_path=MESH_FILE_PATH[i],
+                scale=(0.00095, 0.00095, 0.00095),
+            )
+        # path_object.add_mesh(
+        #     mesh_name="tower1",
+        #     mesh_position=Point(x=0.25, y=0.0, z=0.0),
+        #     file_path=MESH_FILE_PATH[0],
+        #     scale=(0.00095, 0.00095, 0.00095),
+        # )
+        # path_object.add_mesh(
+        #     mesh_name="tower2",
+        #     mesh_position=Point(x=0.25, y=0.15, z=0.0),
+        #     file_path=MESH_FILE_PATH[1],
+        #     scale=(0.00095, 0.00095, 0.00095),
+        # )
+        # path_object.add_mesh(
+        #     mesh_name="tower3",
+        #     mesh_position=Point(x=0.25, y=-0.15, z=0.0),
+        #     file_path=MESH_FILE_PATH[2],
+        #     scale=(0.00095, 0.00095, 0.00095),
+        # )
 
         path_object.add_box(
             box_name="box_1",
             box_pose=Pose(
                 orientation=Quaternion(w=1.0),
-                position=Point(x=0.25, y=0.075, z=0.25 / 2),
+                position=Point(x=0.25, y=0.075, z=0.103 / 2),
             ),
-            size=(0.05, 0.005, 0.25),
+            size=(0.1, 0.001, 0.103),
         )
         path_object.add_box(
             box_name="box_2",
             box_pose=Pose(
                 orientation=Quaternion(w=1.0),
-                position=Point(x=0.25, y=-0.075, z=0.25 / 2),
+                position=Point(x=0.25, y=-0.075, z=0.103 / 2),
             ),
-            size=(0.05, 0.005, 0.25),
+            size=(0.1, 0.001, 0.103),
         )
 
         while rclpy.ok():
