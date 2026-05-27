@@ -244,8 +244,8 @@ class MoveGroupPythonInterface(Node):
             JointConstraint(
                 joint_name=name,
                 position=angle,
-                tolerance_above=0.01,
-                tolerance_below=0.01,
+                tolerance_above=0.005,
+                tolerance_below=0.005,
                 weight=1.0,
             )
             for name, angle in zip(Joint_NAMES, joint_angles)
@@ -264,16 +264,24 @@ class MoveGroupPythonInterface(Node):
             planning_options=PlanningOptions(plan_only=False, replan=True),
         )
 
-        future = self.action_client.send_goal_async(goal_msg)
-        rclpy.spin_until_future_complete(self, future)
+        # 1. 異步發送，不卡死通訊
+        send_goal_future = self.action_client.send_goal_async(goal_msg)
+        
+        # 2. 用 while 安全等待，把 spin 的工作完全留給背景 Thread
+        while not send_goal_future.done():
+            time.sleep(0.05)
 
-        goal_handle = future.result()
+        goal_handle = send_goal_future.result()
         if goal_handle is None or not goal_handle.accepted:
-            self.get_logger().error("Goal rejected")
+            self.get_logger().error("Goal rejected by MoveGroup Server")
             return
 
+        # 3. 異步獲取執行結果
         result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self, result_future)
+        
+        # 4. 用 while 安全等待手臂走到終點
+        while not result_future.done():
+            time.sleep(0.05)
 
         result = result_future.result().result
         if result.error_code.val == 1:
@@ -293,6 +301,75 @@ class MoveGroupPythonInterface(Node):
     def wait_for_state_update(self) -> None:
         # self._executor.spin_once(timeout_sec=0.5)
         time.sleep(0.1)
+
+class MissionPlanner:
+            def __init__(self, path_obj, init_pos):
+                self.path_obj = path_obj
+                self.init_pos = init_pos
+                self.current_station = init_pos[0]
+                self.phase_1_done = False
+                self.station_towers = [[], [], []]
+                self.station_towers[init_pos[0]].append("tower_1")
+                self.station_towers[init_pos[1]].append("tower_2")
+                self.station_towers[init_pos[2]].append("tower_3")
+
+            def move_disk(self, src_idx: int, dst_idx: int):
+                safe_z = 0.06
+                x_src, y_src = STATION_POSITIONS[src_idx]
+                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
+
+                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap)
+                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z))
+
+                self.path_obj.switch_magnet(True)
+                obj_name = self.station_towers[src_idx][-1]
+                self.path_obj.attach_object(object_name=obj_name, link_name="link5")
+                time.sleep(0.5)
+
+                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
+
+                x_dst, y_dst = STATION_POSITIONS[dst_idx]
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
+
+                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap)
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z))
+
+                self.path_obj.switch_magnet(False)
+                self.path_obj.detach_object(object_name=obj_name, link_name="link5")
+                time.sleep(0.5)
+
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
+
+                self.station_towers[dst_idx].append(self.station_towers[src_idx].pop())
+
+            def hanoi(self, n, source, target, auxiliary):
+                if n > 0:
+                    self.hanoi(n - 1, source, auxiliary, target)
+                    self.move_disk(source, target)
+                    self.hanoi(n - 1, auxiliary, target, source)
+            
+            def run_phase_1(self):
+                print("--- Mission Planner: Phase 1 ---")
+                print(f"Stacking to big tower's station: {self.init_pos[0]}")
+                self.move_disk(self.init_pos[1], self.init_pos[0])
+                self.move_disk(self.init_pos[2], self.init_pos[0])
+                self.phase_1_done = True
+                print("Phase 1 completed.")
+                
+            def move_tower_to(self, target_station):
+                if target_station not in [0, 1, 2]:
+                    print("Invalid station! Please enter 0, 1, or 2.")
+                    return
+                
+                if target_station == self.current_station:
+                    print("Already at the target station.")
+                    return
+
+                aux_station = 3 - self.current_station - target_station
+                
+                print(f"Moving Hanoi Tower from {self.current_station} to {target_station}")
+                self.hanoi(3, self.current_station, target_station, aux_station)
+                self.current_station = target_station
 
 def main(args=None):
     global EefState
@@ -317,10 +394,10 @@ def main(args=None):
                 scale=(0.00095, 0.00095, 0.00095),
             )
             
-        """knowing the big tower pose just for simulation"""
-        big_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[0]][0], y=STATION_POSITIONS[tower_init_pos[0]][1], z=0.0)
-        mid_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[1]][0], y=STATION_POSITIONS[tower_init_pos[1]][1], z=0.0)
-        small_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[2]][0], y=STATION_POSITIONS[tower_init_pos[2]][1], z=0.0)
+        # """knowing the big tower pose just for simulation"""
+        # big_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[0]][0], y=STATION_POSITIONS[tower_init_pos[0]][1], z=0.0)
+        # mid_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[1]][0], y=STATION_POSITIONS[tower_init_pos[1]][1], z=0.0)
+        # small_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[2]][0], y=STATION_POSITIONS[tower_init_pos[2]][1], z=0.0)
 
         """Add two obstacles and floor"""
         for i in range(2):
@@ -345,33 +422,26 @@ def main(args=None):
         # test
         # path_object.go_to_joint_state(Your_IK(0.22, -0.19, Tower_height))
         # time.sleep(1.0)
-        path_object.go_to_joint_state(Your_IK(small_tower_pos.x, small_tower_pos.y, Tower_height))
-        time.sleep(1.0)
-        path_object.go_to_joint_state(Your_IK(mid_tower_pos.x, mid_tower_pos.y, Tower_height))
-        time.sleep(1.0)
-        path_object.go_to_joint_state(Your_IK(big_tower_pos.x, big_tower_pos.y, Tower_height))
-        time.sleep(1.0)
+        # path_object.go_to_joint_state(Your_IK(small_tower_pos.x, small_tower_pos.y, Tower_height))
+        # time.sleep(1.0)
+        # path_object.go_to_joint_state(Your_IK(mid_tower_pos.x, mid_tower_pos.y, Tower_height))
+        # time.sleep(1.0)
+        # path_object.go_to_joint_state(Your_IK(big_tower_pos.x, big_tower_pos.y, Tower_height))
+        # time.sleep(1.0)
+
+        
+        """Mission Planning"""
+        planner = MissionPlanner(path_object, tower_init_pos)
 
         while rclpy.ok():
             try:
-                """
-                Modify this into a list of [x, y, z, 1 or 0]
+                if not planner.phase_1_done:
+                    planner.run_phase_1()
 
-                x_input=float(raw_input("x:  "))
-                y_input=float(raw_input("y:  "))
-                z_input=float(raw_input("z:  "))
-                1 for end-effector on;0 for off
+                target_station_str = input("\nEnter target station (0, 1, or 2) to move the whole tower: ")
+                target_station = int(target_station_str)
                 
-                
-                path_object.joint_angles = Your_IK(x,y,z)
-                path_object.go_to_joint_state() #path will automatically be published by moveit
-                EefState = 0
-                pub_EefState.publish(EefState)  #publish end-effector state
-
-
-                """
-                # TODO
-                pass
+                planner.move_tower_to(target_station)
 
             except ValueError as e:
                 path_object.get_logger().error(f"Error: {str(e)}")
