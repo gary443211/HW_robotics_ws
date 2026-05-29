@@ -268,30 +268,35 @@ class MoveGroupPythonInterface(Node):
             planning_options=PlanningOptions(plan_only=False, replan=True),
         )
 
-        # 1. 異步發送，不卡死通訊
-        send_goal_future = self.action_client.send_goal_async(goal_msg)
-        
-        # 2. 用 while 安全等待，把 spin 的工作完全留給背景 Thread
-        while not send_goal_future.done():
-            time.sleep(0.05)
+        max_retries = 3
+        for attempt in range(max_retries):
+            # 1. 異步發送，不卡死通訊
+            send_goal_future = self.action_client.send_goal_async(goal_msg)
+            
+            # 2. 用 while 安全等待，把 spin 的工作完全留給背景 Thread
+            while not send_goal_future.done():
+                time.sleep(0.05)
 
-        goal_handle = send_goal_future.result()
-        if goal_handle is None or not goal_handle.accepted:
-            self.get_logger().error("Goal rejected by MoveGroup Server")
-            return
+            goal_handle = send_goal_future.result()
+            if goal_handle is None or not goal_handle.accepted:
+                self.get_logger().error(f"Goal rejected by MoveGroup Server. Replanning attempt {attempt + 1}/{max_retries}...")
+                continue
 
-        # 3. 異步獲取執行結果
-        result_future = goal_handle.get_result_async()
-        
-        # 4. 用 while 安全等待手臂走到終點
-        while not result_future.done():
-            time.sleep(0.05)
+            # 3. 異步獲取執行結果
+            result_future = goal_handle.get_result_async()
+            
+            # 4. 用 while 安全等待手臂走到終點
+            while not result_future.done():
+                time.sleep(0.05)
 
-        result = result_future.result().result
-        if result.error_code.val == 1:
-            self.get_logger().info("Motion executed successfully")
-        else:
-            self.get_logger().error(f"Motion failed with error code: {result.error_code.val}")
+            result = result_future.result().result
+            if result.error_code.val == 1:
+                self.get_logger().info("Motion executed successfully")
+                return
+            else:
+                self.get_logger().error(f"Motion failed with error code: {result.error_code.val}. Replanning attempt {attempt + 1}/{max_retries}...")
+                
+        self.get_logger().error("Max replanning attempts reached. Motion failed.")
 
     def switch_magnet(self, on: bool) -> None:
         """
