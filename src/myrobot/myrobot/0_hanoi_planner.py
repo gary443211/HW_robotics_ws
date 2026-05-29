@@ -244,19 +244,23 @@ class MoveGroupPythonInterface(Node):
             JointConstraint(
                 joint_name=name,
                 position=angle,
-                tolerance_above=0.005,
-                tolerance_below=0.005,
+                tolerance_above=0.0001,
+                tolerance_below=0.0001,
                 weight=1.0,
             )
             for name, angle in zip(Joint_NAMES, joint_angles)
         ]
         constraints = Constraints(joint_constraints=joint_constraints)
-
+        
         motion_plan_request = MotionPlanRequest(
             group_name=self.GROUP_NAME,
-            num_planning_attempts=10,
-            allowed_planning_time=5.0,
+            num_planning_attempts=20,
+            allowed_planning_time=20.0,
             goal_constraints=[constraints],
+            pipeline_id = "ompl",
+            planner_id = "RRTConnect",
+            max_velocity_scaling_factor=0.5,
+            max_acceleration_scaling_factor=1.0,
         )
 
         goal_msg = MoveGroup.Goal(
@@ -314,11 +318,11 @@ class MissionPlanner:
                 self.station_towers[init_pos[2]].append("tower_3")
 
             def move_disk(self, src_idx: int, dst_idx: int):
-                safe_z = 0.06
+                safe_z = 0.05+Tower_height
                 x_src, y_src = STATION_POSITIONS[src_idx]
-                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
-
-                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap)
+                #self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
+                    
+                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
                 self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z))
 
                 self.path_obj.switch_magnet(True)
@@ -326,19 +330,19 @@ class MissionPlanner:
                 self.path_obj.attach_object(object_name=obj_name, link_name="link5")
                 time.sleep(0.5)
 
-                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
+                #self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
 
                 x_dst, y_dst = STATION_POSITIONS[dst_idx]
-                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
+                #self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
 
-                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap)
+                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
                 self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z))
 
                 self.path_obj.switch_magnet(False)
                 self.path_obj.detach_object(object_name=obj_name, link_name="link5")
                 time.sleep(0.5)
 
-                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
+                #self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
 
                 self.station_towers[dst_idx].append(self.station_towers[src_idx].pop())
 
@@ -413,7 +417,7 @@ def main(args=None):
             box_name=f"floor",
             box_pose=Pose(
                 orientation=Quaternion(w=1.0),
-                position=Point(x=0.0, y=0.0, z=-0.005),
+                position=Point(x=0.0, y=0.0, z=-0.006), # a little bit below surface to avoid colision
             ),
             size=(1.0, 1.0, 0.01),
         )
