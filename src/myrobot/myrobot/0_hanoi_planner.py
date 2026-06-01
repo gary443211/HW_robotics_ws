@@ -3,6 +3,7 @@ import time
 from math import cos, pi, sin
 from pathlib import Path
 
+import sys
 import random
 import numpy as np
 import rclpy
@@ -25,7 +26,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import Mesh, MeshTriangle, SolidPrimitive
-from std_msgs.msg import Bool, Header
+from std_msgs.msg import Bool, Header, String
 
 # load functions from other file
 from myrobot.hanoi_spawn_objects import load_mesh_from_file
@@ -386,6 +387,36 @@ def main(args=None):
 
     rclpy.init(args=args)
 
+    use_topic = '--topic' in sys.argv
+    tower_init_pos = [0, 1, 2]
+
+    if use_topic:
+        temp_node = rclpy.create_node('temp_aruco_sub')
+        received_msg = []
+        
+        def aruco_cb(msg):
+            received_msg.append(msg.data)
+            
+        temp_node.create_subscription(String, '/aruco_positions', aruco_cb, 10)
+        temp_node.get_logger().info("Waiting for /aruco_positions message...")
+        
+        while rclpy.ok() and not received_msg:
+            rclpy.spin_once(temp_node, timeout_sec=0.1)
+            
+        if received_msg:
+            data = received_msg[0]
+            temp_node.get_logger().info(f"Received from /aruco_positions: {data}")
+            for part in data.split(","):
+                st = 0 if "Left" in part else 1 if "Mid" in part else 2 if "Right" in part else -1
+                if st != -1:
+                    if "Large" in part: tower_init_pos[0] = st
+                    elif "Medium" in part: tower_init_pos[1] = st
+                    elif "Small" in part: tower_init_pos[2] = st
+        temp_node.destroy_node()
+    else:
+        """Hanoi tower initial position randomize"""
+        tower_init_pos = random.sample(range(0, 3), 3)
+
     executor = MultiThreadedExecutor()
 
     try:
@@ -394,8 +425,6 @@ def main(args=None):
         executor_thread = threading.Thread(target=executor.spin, daemon=True)
         executor_thread.start()
 
-        """Hanoi tower initial position randomize"""
-        tower_init_pos = random.sample(range(0, 3), 3)
         for i in range(3):
             path_object.add_mesh(
                 mesh_name=f"tower_{i+1}",
@@ -407,7 +436,7 @@ def main(args=None):
         """Add two obstacles and floor"""
         for i in range(2):
             path_object.add_box(
-            box_name=f"box_{i+1}",
+            box_name=f"wall_{i+1}",
             box_pose=Pose(
                 orientation=Quaternion(w=1.0),
                 position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
