@@ -13,6 +13,7 @@ from moveit_msgs.msg import (
     AttachedCollisionObject,
     CollisionObject,
     Constraints,
+    PositionConstraint,
     DisplayTrajectory,
     JointConstraint,
     MotionPlanRequest,
@@ -258,9 +259,9 @@ class MoveGroupPythonInterface(Node):
             allowed_planning_time=20.0,
             goal_constraints=[constraints],
             pipeline_id = "ompl",
-            planner_id = "RRTConnect",
+            planner_id = "RRTstarkConfigDefault",
             max_velocity_scaling_factor=0.5,
-            max_acceleration_scaling_factor=1.0,
+            max_acceleration_scaling_factor=0.5,
         )
 
         goal_msg = MoveGroup.Goal(
@@ -268,7 +269,7 @@ class MoveGroupPythonInterface(Node):
             planning_options=PlanningOptions(plan_only=False, replan=True),
         )
 
-        max_retries = 3
+        max_retries = 5
         for attempt in range(max_retries):
             # 1. 異步發送，不卡死通訊
             send_goal_future = self.action_client.send_goal_async(goal_msg)
@@ -402,11 +403,6 @@ def main(args=None):
                 file_path=MESH_FILE_PATH[i],
                 scale=(0.00095, 0.00095, 0.00095),
             )
-            
-        # """knowing the big tower pose just for simulation"""
-        # big_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[0]][0], y=STATION_POSITIONS[tower_init_pos[0]][1], z=0.0)
-        # mid_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[1]][0], y=STATION_POSITIONS[tower_init_pos[1]][1], z=0.0)
-        # small_tower_pos = Point(x=STATION_POSITIONS[tower_init_pos[2]][0], y=STATION_POSITIONS[tower_init_pos[2]][1], z=0.0)
 
         """Add two obstacles and floor"""
         for i in range(2):
@@ -428,17 +424,6 @@ def main(args=None):
         )
         time.sleep(1.0)
 
-        # test
-        # path_object.go_to_joint_state(Your_IK(0.22, -0.19, Tower_height))
-        # time.sleep(1.0)
-        # path_object.go_to_joint_state(Your_IK(small_tower_pos.x, small_tower_pos.y, Tower_height))
-        # time.sleep(1.0)
-        # path_object.go_to_joint_state(Your_IK(mid_tower_pos.x, mid_tower_pos.y, Tower_height))
-        # time.sleep(1.0)
-        # path_object.go_to_joint_state(Your_IK(big_tower_pos.x, big_tower_pos.y, Tower_height))
-        # time.sleep(1.0)
-
-        
         """Mission Planning"""
         planner = MissionPlanner(path_object, tower_init_pos)
 
@@ -446,6 +431,15 @@ def main(args=None):
             try:
                 if not planner.phase_1_done:
                     planner.run_phase_1()
+
+                path_object.add_box(
+                box_name=f"roof",
+                box_pose=Pose(
+                    orientation=Quaternion(w=1.0),
+                    position=Point(x=0.25, y=0.0, z=0.25),
+                ),
+                size=(0.05, 1.0, 0.01),
+            )
 
                 target_station_str = input("\nEnter target station (0, 1, or 2) to move the whole tower: ")
                 target_station = int(target_station_str)
