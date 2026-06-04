@@ -2,26 +2,37 @@ import cv2
 import numpy as np
 import cv2.aruco as aruco
 
-def process_image():
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import String
 
-    cap = cv2.VideoCapture(1)
+class ArucoPositionNode(Node):
+    def __init__(self):
+        super().__init__('aruco_position_node')
+        self.publisher_ = self.create_publisher(String, '/aruco_positions', 10)
+
+def process_image(args=None):
+    rclpy.init(args=args)
+    node = ArucoPositionNode()
+
+    cap = cv2.VideoCapture(2)
     aruco_dict = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     parameters = aruco.DetectorParameters()
     detector = aruco.ArucoDetector(aruco_dict, parameters)
     # 定義 ID 與大小的對應關係
     id_to_size = {1: "Large", 2: "Medium", 3: "Small"}
 
-    while (cap.isOpened()):
+    while cap.isOpened() and rclpy.ok():
         ret, img = cap.read()
     
         # 轉成灰階
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # 高斯模糊
-        blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+        blurred = cv2.GaussianBlur(gray, (1, 1), 0)
 
         # 自動閾值處理
-        ret, thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY)
         # thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
         
         # # 邊緣檢測
@@ -88,17 +99,36 @@ def process_image():
             # 畫出偵測到的框
             aruco.drawDetectedMarkers(img, corners, ids)
             
+            detected_markers = []
+
             for i in range(len(ids)):
                 marker_id = ids[i][0]
                 size_label = id_to_size.get(marker_id, "Unknown")
                 
+                pts = corners[i][0]
+                top_left = pts[0]
+                # 計算中心 x 座標以判斷左右
+                cx = int(np.mean(pts[:, 0]))
+                detected_markers.append((cx, marker_id, size_label))
+                
                 # 在畫面上標註
-                corner = corners[i][0][0] # 取得左上角座標
                 cv2.putText(img, f"{size_label}", 
-                            (int(corner[0]), int(corner[1])-10), 
+                            (int(top_left[0]), int(top_left[1])-30), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+                cv2.putText(img, f"({int(top_left[0])}, {int(top_left[1])})", 
+                            (int(top_left[0]), int(top_left[1])-10), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
-                draw_triple_rect(img, corners)
+            draw_triple_rect(img, corners)
+            
+            if len(detected_markers) == 3:
+                # 依 x 座標排序，小到大即為左到右
+                detected_markers.sort(key=lambda m: m[0])
+                left, mid, right = detected_markers[0], detected_markers[1], detected_markers[2]
+                
+                msg = String()
+                msg.data = f"Left: {left[2]} (ID:{left[1]}), Mid: {mid[2]} (ID:{mid[1]}), Right: {right[2]} (ID:{right[1]})"
+                node.publisher_.publish(msg)
 
         # 顯示結果
         cv2.imshow("contours", img)
@@ -112,8 +142,13 @@ def process_image():
         key = cv2.waitKey(1)
         if key == 27:
             break
+            
+        rclpy.spin_once(node, timeout_sec=0.01)
+
     cap.release()
     cv2.destroyAllWindows()
+    node.destroy_node()
+    rclpy.shutdown()
 
 def draw_triple_rect(frame, corners):
     for corner in corners:
