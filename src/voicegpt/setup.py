@@ -27,6 +27,7 @@ setup(
         'console_scripts': [
             'voicegpt_node = voicegpt.voicegpt:main',
             'turtlenode = voicegpt.turtlenode:main',
+            'voicegpt_hanoi = voicegpt.voicegpt_hanoi:main',
         ],
     },
 )

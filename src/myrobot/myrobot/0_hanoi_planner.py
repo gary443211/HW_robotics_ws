@@ -4,6 +4,9 @@ from math import cos, pi, sin
 from pathlib import Path
 
 import sys
+import json
+
+
 import random
 import numpy as np
 import rclpy
@@ -52,6 +55,12 @@ STATION_POSITIONS = (
     (0.25, -0.15),
 )
 
+"""Obstacle position"""
+OBSTACLE_POSITIONS = {
+    0: (0.25, -0.075),
+    1: (0.25, 0.075)
+}
+
 """Hanoi tower mesh file path"""
 WORKSPACE_PATH = str(Path(__file__).absolute().parent.parent.parent.parent)
 MESH_DIR = f"{WORKSPACE_PATH}/src/myplan/mesh"
@@ -74,6 +83,16 @@ Hint:
 class MoveGroupPythonInterface(Node):
     def __init__(self, executor: MultiThreadedExecutor):
         super().__init__("move_group_python_interface")
+
+         # voice control
+        self.target_station = None
+        self.obstacles = []
+        self.create_subscription(
+            String,
+            "gpt_reply_to_user",
+            self.gpt_callback,
+            10
+        )
 
         self.joint_angles: list[float] | None = None
 
@@ -127,6 +146,26 @@ class MoveGroupPythonInterface(Node):
 
         self.get_logger().info("MoveGroup Python Interface already initialized")
 
+# voice control
+    def gpt_callback(self, msg):
+        try:
+            data = json.loads(msg.data)
+
+            if data["action"] == "mission":
+
+                self.target_station = data["station"]
+                self.obstacles = data["obstacles"]
+
+                self.get_logger().info(
+                    f"Target={self.target_station}"
+                )
+
+                self.get_logger().info(
+                    f"Obstacles={self.obstacles}"
+                )
+
+        except Exception as e:
+            self.get_logger().error(str(e))
     def add_box(
         self,
         *,
@@ -361,6 +400,8 @@ class MissionPlanner:
             
             def run_phase_1(self):
                 print("--- Mission Planner: Phase 1 ---")
+                safe_joints = [0.0, -1.270796327, 1.570796327, 0.0]
+                self.path_obj.go_to_joint_state(safe_joints)
                 print(f"Stacking to big tower's station: {self.init_pos[0]}")
                 self.move_disk(self.init_pos[1], self.init_pos[0])
                 self.move_disk(self.init_pos[2], self.init_pos[0])
@@ -387,10 +428,10 @@ def main(args=None):
 
     rclpy.init(args=args)
 
-    use_topic = '--topic' in sys.argv
+    use_cam = '-camera' in sys.argv
     tower_init_pos = [0, 1, 2]
 
-    if use_topic:
+    if use_cam:
         temp_node = rclpy.create_node('temp_aruco_sub')
         received_msg = []
         
@@ -434,15 +475,15 @@ def main(args=None):
             )
 
         """Add two obstacles and floor"""
-        for i in range(2):
-            path_object.add_box(
-            box_name=f"wall_{i+1}",
-            box_pose=Pose(
-                orientation=Quaternion(w=1.0),
-                position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
-            ),
-            size=(0.1, 0.001, 0.103),
-        )   
+        # for i in range(2):
+        #     path_object.add_box(
+        #     box_name=f"wall_{i+1}",
+        #     box_pose=Pose(
+        #         orientation=Quaternion(w=1.0),
+        #         position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
+        #     ),
+        #     size=(0.1, 0.001, 0.103),
+        # )   
         path_object.add_box(
             box_name=f"floor",
             box_pose=Pose(
@@ -458,6 +499,42 @@ def main(args=None):
 
         while rclpy.ok():
             try:
+                use_voice = '-voice' in sys.argv
+                if use_voice:
+                    print("Waiting GPT command...")
+
+                    while path_object.target_station is None:
+                        time.sleep(0.1)
+                        
+                    print("Voice command received")
+                    
+                    # add obstacles
+                    for obs in path_object.obstacles:
+                        print(obs)
+
+                        path_object.add_box(
+                            box_name=f"obstacle_{obs}",
+                            box_pose=Pose(
+                                orientation=Quaternion(w=1.0),
+                                position=Point(
+                                    x=0.25,
+                                    y=0.075 if obs == 0 else -0.075,
+                                    z=0.05
+                                ),
+                            ),
+                            size=(0.10, 0.001, 0.10),
+                        )
+                else:
+                    for i in range(2):
+                        path_object.add_box(
+                        box_name=f"wall_{i+1}",
+                        box_pose=Pose(
+                            orientation=Quaternion(w=1.0),
+                            position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
+                        ),
+                        size=(0.1, 0.001, 0.103),
+                    )   
+
                 if not planner.phase_1_done:
                     planner.run_phase_1()
 
@@ -470,10 +547,14 @@ def main(args=None):
                 size=(0.05, 1.0, 0.01),
             )
 
-                target_station_str = input("\nEnter target station (0, 1, or 2) to move the whole tower: ")
-                target_station = int(target_station_str)
-                
-                planner.move_tower_to(target_station)
+                if use_voice:
+                    planner.move_tower_to(path_object.target_station)
+                    path_object.target_station = None
+                    break
+                else:
+                    target_station_str = input("\nEnter target station (0, 1, or 2) to move the whole tower: ")
+                    target_station = int(target_station_str)
+                    planner.move_tower_to(target_station)
 
             except ValueError as e:
                 path_object.get_logger().error(f"Error: {str(e)}")

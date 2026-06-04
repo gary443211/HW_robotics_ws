@@ -32,6 +32,7 @@ setup(
             'IK_path_planning = myrobot.IK_path_planning:main', 
             'hanoi_planner = myrobot.0_hanoi_planner:main',
             'hanoi_spawn_objects = myrobot.hanoi_spawn_objects:main',
+            'visual_recognition = myrobot.visual_recognition:process_image',
         ],
     },
 )
