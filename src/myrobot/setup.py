@@ -33,6 +33,9 @@ setup(
             'hanoi_planner = myrobot.0_hanoi_planner:main',
             'hanoi_spawn_objects = myrobot.hanoi_spawn_objects:main',
             'visual_recognition = myrobot.visual_recognition:process_image',
+            'magnet_moveit_real_arm_interface = myrobot.0_magnet_moveit_real_arm_interface:main',
+            'magnet_serial_with_ST = myrobot.0_magnet_serial_with_ST:main', 
+            "magnet_kb_control = myrobot.magnet_kb_control:main",
         ],
     },
 )
