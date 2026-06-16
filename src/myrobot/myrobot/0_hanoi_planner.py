@@ -391,8 +391,8 @@ class MissionPlanner:
                 x_src, y_src = STATION_POSITIONS[src_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
                     
-                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002) + 0.01 # safe tolerance
-                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z))
+                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002)
+                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z + 0.01)) # safe tolerance
 
                 self.path_obj.switch_magnet(True)
                 obj_name = self.station_towers[src_idx][-1]
@@ -404,9 +404,9 @@ class MissionPlanner:
                 x_dst, y_dst = STATION_POSITIONS[dst_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
 
-                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002) + 0.04 # safe tolerance
-                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z))
-                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z-0.03))
+                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002)
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z + 0.04))# safe tolerance
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z + 0.01))# safe tolerance
 
                 self.path_obj.switch_magnet(False)
                 self.path_obj.detach_object(object_name=obj_name, link_name="link5")
