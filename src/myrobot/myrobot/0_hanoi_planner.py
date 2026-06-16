@@ -12,7 +12,7 @@ import numpy as np
 import rclpy
 import trimesh
 from geometry_msgs.msg import Point, Pose, Quaternion
-from moveit_msgs.action import MoveGroup
+from moveit_msgs.action import ExecuteTrajectory, MoveGroup
 from moveit_msgs.msg import (
     AttachedCollisionObject,
     CollisionObject,
@@ -103,9 +103,10 @@ class MoveGroupPythonInterface(Node):
         self.PLANNING_FRAME = "world"
 
         self.action_client = ActionClient(self, MoveGroup, "move_action")
+        self.execute_client = ActionClient(self, ExecuteTrajectory, "execute_trajectory")
 
         self.display_trajectory_publisher = self.create_publisher(
-            DisplayTrajectory, "/move_group/display_planned_path", 20
+            DisplayTrajectory, "/executed_trajectory", 20
         )
 
         self.pub_eef_state = self.create_publisher(Bool, "/SetEndEffector", 10)
@@ -138,11 +139,13 @@ class MoveGroupPythonInterface(Node):
                 self.get_logger().warn("Joint states not received within timeout")
                 break
 
-        self.get_logger().info("Waiting for trajectory action server...")
-        if self.action_client.wait_for_server(timeout_sec=10.0):
-            self.get_logger().info("Trajectory action server connected!")
+        self.get_logger().info("Waiting for trajectory action servers...")
+        action_ready = self.action_client.wait_for_server(timeout_sec=10.0)
+        execute_ready = self.execute_client.wait_for_server(timeout_sec=10.0)
+        if action_ready and execute_ready:
+            self.get_logger().info("Trajectory action servers connected!")
         else:
-            self.get_logger().error("Trajectory action server not available!")
+            self.get_logger().error("Trajectory action servers not available!")
 
         self.get_logger().info("MoveGroup Python Interface already initialized")
 
@@ -299,17 +302,17 @@ class MoveGroupPythonInterface(Node):
             allowed_planning_time=20.0,
             goal_constraints=[constraints],
             pipeline_id = "ompl",
-            planner_id = "RRTstarkConfigDefault",
-            max_velocity_scaling_factor=0.5,
-            max_acceleration_scaling_factor=0.5,
+            planner_id = "RRTConnectkConfigDefault",
+            max_velocity_scaling_factor=0.9,
+            max_acceleration_scaling_factor=0.9,
         )
 
         goal_msg = MoveGroup.Goal(
             request=motion_plan_request,
-            planning_options=PlanningOptions(plan_only=False, replan=True),
+            planning_options=PlanningOptions(plan_only=True, replan=True),
         )
 
-        max_retries = 5
+        max_retries = 20
         for attempt in range(max_retries):
             # 1. 異步發送，不卡死通訊
             send_goal_future = self.action_client.send_goal_async(goal_msg)
@@ -332,7 +335,27 @@ class MoveGroupPythonInterface(Node):
 
             result = result_future.result().result
             if result.error_code.val == 1:
-                self.get_logger().info("Motion executed successfully")
+                self.get_logger().info("Plan generated successfully. Sending to real arm and executing in MoveIt...")
+                
+                # Publish the successfully planned trajectory to the real arm
+                dt = DisplayTrajectory()
+                dt.trajectory = [result.planned_trajectory]
+                self.display_trajectory_publisher.publish(dt)
+                
+                # Execute the trajectory in MoveIt (simulation/RViz) at the same time
+                exec_goal = ExecuteTrajectory.Goal()
+                exec_goal.trajectory = result.planned_trajectory
+                
+                exec_send_future = self.execute_client.send_goal_async(exec_goal)
+                while not exec_send_future.done():
+                    time.sleep(0.05)
+                
+                exec_handle = exec_send_future.result()
+                if exec_handle and exec_handle.accepted:
+                    exec_res_future = exec_handle.get_result_async()
+                    while not exec_res_future.done():
+                        time.sleep(0.05)
+                        
                 return
             else:
                 self.get_logger().error(f"Motion failed with error code: {result.error_code.val}. Replanning attempt {attempt + 1}/{max_retries}...")
@@ -368,8 +391,8 @@ class MissionPlanner:
                 x_src, y_src = STATION_POSITIONS[src_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
                     
-                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
-                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z))
+                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002)
+                self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z + 0.01)) # safe tolerance
 
                 self.path_obj.switch_magnet(True)
                 obj_name = self.station_towers[src_idx][-1]
@@ -381,8 +404,9 @@ class MissionPlanner:
                 x_dst, y_dst = STATION_POSITIONS[dst_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
 
-                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
-                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z))
+                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002)
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z + 0.04))# safe tolerance
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z + 0.01))# safe tolerance
 
                 self.path_obj.switch_magnet(False)
                 self.path_obj.detach_object(object_name=obj_name, link_name="link5")
@@ -519,33 +543,55 @@ def main(args=None):
                                 position=Point(
                                     x=0.25,
                                     y=0.075 if obs == 0 else -0.075,
-                                    z=0.05
+                                    z=0.15 / 2
                                 ),
                             ),
-                            size=(0.10, 0.001, 0.10),
+                            size=(0.10, 0.001, 0.15),
                         )
+                        if len(path_object.obstacles) == 1:
+                            if obs == 0:
+                                path_object.add_box(
+                                box_name=f"wall",
+                                box_pose=Pose(
+                                    orientation=Quaternion(w=1.0),
+                                    position=Point(x=0.25, y=-0.075, z=0.09 / 2),
+                                ),
+                                size=(0.1, 0.001, 0.09),
+                            )
+                            else:
+                                path_object.add_box(
+                                    box_name=f"wall",
+                                    box_pose=Pose(
+                                        orientation=Quaternion(w=1.0),
+                                        position=Point(x=0.25, y=0.075, z=0.09 / 2),
+                                    ),
+                                    size=(0.1, 0.001, 0.09),
+                            )
+
+
                 else:
                     for i in range(2):
                         path_object.add_box(
                         box_name=f"wall_{i+1}",
                         box_pose=Pose(
                             orientation=Quaternion(w=1.0),
-                            position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
+                            position=Point(x=0.25, y=0.15*i-0.075, z=0.15 / 2),
                         ),
-                        size=(0.1, 0.001, 0.103),
+                        size=(0.1, 0.001, 0.15),
                     )   
 
                 if not planner.phase_1_done:
+                    input("Press Enter to start Phase 1: Stack all disks to the biggest tower...")
                     planner.run_phase_1()
 
-                path_object.add_box(
-                box_name=f"roof",
-                box_pose=Pose(
-                    orientation=Quaternion(w=1.0),
-                    position=Point(x=0.25, y=0.0, z=0.25),
-                ),
-                size=(0.05, 1.0, 0.01),
-            )
+            #     path_object.add_box(
+            #     box_name=f"roof",
+            #     box_pose=Pose(
+            #         orientation=Quaternion(w=1.0),
+            #         position=Point(x=0.25, y=0.0, z=0.25),
+            #     ),
+            #     size=(0.05, 1.0, 0.01),
+            # )
 
                 if use_voice:
                     planner.move_tower_to(path_object.target_station)
@@ -571,6 +617,10 @@ def main(args=None):
         traceback.print_exc()
 
     finally:
+        path_object.switch_magnet(False)
+        init_joints = [0.0, -1.48, 1.570796327, 0.0]
+        path_object.go_to_joint_state(init_joints)
+    
         executor.shutdown()
         rclpy.shutdown()
 

@@ -32,7 +32,7 @@ def process_image(args=None):
         blurred = cv2.GaussianBlur(gray, (1, 1), 0)
 
         # 自動閾值處理
-        ret, thresh = cv2.threshold(blurred, 110, 255, cv2.THRESH_BINARY)
+        ret, thresh = cv2.threshold(blurred, 80, 255, cv2.THRESH_BINARY)
         # thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
         
         # # 邊緣檢測
@@ -122,9 +122,9 @@ def process_image(args=None):
             draw_triple_rect(img, corners)
             
             if len(detected_markers) == 3:
-                # 依 x 座標排序，小到大即為左到右
+                # 依 x 座標排序，小到大即為左到右(inverted)
                 detected_markers.sort(key=lambda m: m[0])
-                left, mid, right = detected_markers[0], detected_markers[1], detected_markers[2]
+                right, mid, left = detected_markers[0], detected_markers[1], detected_markers[2]
                 
                 msg = String()
                 msg.data = f"Left: {left[2]} (ID:{left[1]}), Mid: {mid[2]} (ID:{mid[1]}), Right: {right[2]} (ID:{right[1]})"
@@ -132,9 +132,9 @@ def process_image(args=None):
 
         # 顯示結果
         cv2.imshow("contours", img)
-        cv2.imshow("gray", gray)
-        cv2.imshow("blurred", blurred)
-        cv2.imshow("thresh", thresh)
+        # cv2.imshow("gray", gray)
+        # cv2.imshow("blurred", blurred)
+        # cv2.imshow("thresh", thresh)
         # cv2.imshow("canny", canny)
         # cv2.imshow("opening", opening)
         # cv2.imshow("closing", closing)

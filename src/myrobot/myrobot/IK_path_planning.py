@@ -130,7 +130,7 @@ def Your_IK(x: float, y: float, z: float, pitch=pi/2) -> tuple[float, float, flo
 
     # 5. 求解 theta4 (根據約束條件)
     # theta2 + theta3 + theta4 = pi/2
-    theta4 = (pi / 2) - theta2 - theta3
+    theta4 = (pi / 2) - theta2 - theta3 - 0.043 #(2.5 degrees)
 
     print(float(theta1), float(theta2), float(theta3), float(theta4))
     return [float(theta1), float(theta2), float(theta3), float(theta4)]
