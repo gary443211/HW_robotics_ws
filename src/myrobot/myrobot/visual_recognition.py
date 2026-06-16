@@ -132,9 +132,9 @@ def process_image(args=None):
 
         # 顯示結果
         cv2.imshow("contours", img)
-        cv2.imshow("gray", gray)
-        cv2.imshow("blurred", blurred)
-        cv2.imshow("thresh", thresh)
+        # cv2.imshow("gray", gray)
+        # cv2.imshow("blurred", blurred)
+        # cv2.imshow("thresh", thresh)
         # cv2.imshow("canny", canny)
         # cv2.imshow("opening", opening)
         # cv2.imshow("closing", closing)

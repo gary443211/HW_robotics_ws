@@ -303,8 +303,8 @@ class MoveGroupPythonInterface(Node):
             goal_constraints=[constraints],
             pipeline_id = "ompl",
             planner_id = "RRTConnectkConfigDefault",
-            max_velocity_scaling_factor=0.3,
-            max_acceleration_scaling_factor=0.3,
+            max_velocity_scaling_factor=0.9,
+            max_acceleration_scaling_factor=0.9,
         )
 
         goal_msg = MoveGroup.Goal(
@@ -391,7 +391,7 @@ class MissionPlanner:
                 x_src, y_src = STATION_POSITIONS[src_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, safe_z))
                     
-                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
+                pick_z = Tower_height + (len(self.station_towers[src_idx]) - 1) * (Tower_height - Tower_overlap + 0.002) + 0.01 # safe tolerance
                 self.path_obj.go_to_joint_state(Your_IK(x_src, y_src, pick_z))
 
                 self.path_obj.switch_magnet(True)
@@ -404,8 +404,9 @@ class MissionPlanner:
                 x_dst, y_dst = STATION_POSITIONS[dst_idx]
                 #self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, safe_z))
 
-                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002) # safe tolerance
+                place_z = Tower_height + len(self.station_towers[dst_idx]) * (Tower_height - Tower_overlap + 0.002) + 0.04 # safe tolerance
                 self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z))
+                self.path_obj.go_to_joint_state(Your_IK(x_dst, y_dst, place_z-0.03))
 
                 self.path_obj.switch_magnet(False)
                 self.path_obj.detach_object(object_name=obj_name, link_name="link5")
@@ -542,23 +543,45 @@ def main(args=None):
                                 position=Point(
                                     x=0.25,
                                     y=0.075 if obs == 0 else -0.075,
-                                    z=0.05
+                                    z=0.15 / 2
                                 ),
                             ),
-                            size=(0.10, 0.001, 0.10),
+                            size=(0.10, 0.001, 0.15),
                         )
+                        if len(path_object.obstacles) == 1:
+                            if obs == 0:
+                                path_object.add_box(
+                                box_name=f"wall",
+                                box_pose=Pose(
+                                    orientation=Quaternion(w=1.0),
+                                    position=Point(x=0.25, y=-0.075, z=0.09 / 2),
+                                ),
+                                size=(0.1, 0.001, 0.09),
+                            )
+                            else:
+                                path_object.add_box(
+                                    box_name=f"wall",
+                                    box_pose=Pose(
+                                        orientation=Quaternion(w=1.0),
+                                        position=Point(x=0.25, y=0.075, z=0.09 / 2),
+                                    ),
+                                    size=(0.1, 0.001, 0.09),
+                            )
+
+
                 else:
                     for i in range(2):
                         path_object.add_box(
                         box_name=f"wall_{i+1}",
                         box_pose=Pose(
                             orientation=Quaternion(w=1.0),
-                            position=Point(x=0.25, y=0.15*i-0.075, z=0.103 / 2),
+                            position=Point(x=0.25, y=0.15*i-0.075, z=0.15 / 2),
                         ),
-                        size=(0.1, 0.001, 0.25),
+                        size=(0.1, 0.001, 0.15),
                     )   
 
                 if not planner.phase_1_done:
+                    input("Press Enter to start Phase 1: Stack all disks to the biggest tower...")
                     planner.run_phase_1()
 
             #     path_object.add_box(
@@ -594,6 +617,10 @@ def main(args=None):
         traceback.print_exc()
 
     finally:
+        path_object.switch_magnet(False)
+        init_joints = [0.0, -1.48, 1.570796327, 0.0]
+        path_object.go_to_joint_state(init_joints)
+    
         executor.shutdown()
         rclpy.shutdown()
 
